@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Daily Schedule — The Top 0.1% Blueprint</title>
+<style>
+  :root {
+    --bg: #F7F4EC;
+    --paper: #FDFBF5;
+    --ink: #1F1F1F;
+    --muted: #6B6B6B;
+    --accent: #8B7355;
+    --accent-soft: #E8DFCC;
+    --accent-deep: #6B5742;
+    --line: #DDD3BD;
+    --done: #C8B89A;
+    --highlight: #FFF7E0;
+    --now: #C7392F;
+    --sat: #2D5F4E;
+    --sun: #6B4A8B;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+  header {
+    text-align: center;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 28px;
+  }
+  header h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin: 0 0 6px;
+    color: var(--ink);
+  }
+  header .subtitle {
+    font-family: Georgia, serif;
+    font-style: italic;
+    color: var(--accent);
+    font-size: 15px;
+    letter-spacing: 0.3px;
+  }
+  header .live-clock {
+    display: inline-block;
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .day-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  .day-tab {
+    flex: 0 0 auto;
+    padding: 9px 14px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+  .day-tab:hover { border-color: var(--accent); color: var(--accent); }
+  .day-tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  .day-tab.today {
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+
+  .day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 4px;
+  }
+  .day-header .day-title {
+    font-family: Georgia, serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+  }
+  .day-header .day-vibe {
+    font-style: italic;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .progress-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--accent-soft);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+  .progress-text {
+    font-size: 13px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .reset-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .schedule {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+  }
+  .block {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 0;
+    border-top: 1px solid var(--line);
+    position: relative;
+  }
+  .block:first-child { border-top: none; }
+  .block.now { background: var(--highlight); }
+  .block.now::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 2px;
+    background: var(--now);
+    z-index: 1;
+  }
+  .block.now::after {
+    content: 'NOW';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    font-size: 10px;
+    color: var(--now);
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    background: var(--now);
+    color: white;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .time {
+    padding: 16px 12px;
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+    font-weight: 700;
+    font-size: 13px;
+    text-align: center;
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .time .start { font-size: 14px; }
+  .time .end { font-size: 11px; color: var(--accent); margin-top: 2px; }
+
+  .activity {
+    padding: 14px 18px;
+  }
+  .activity-title {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .activity-detail {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .tasks { list-style: none; margin: 6px 0 0; padding: 0; }
+  .tasks li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .tasks li input[type="checkbox"] {
+    margin-top: 3px;
+    flex-shrink: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .tasks li.done { color: var(--done); text-decoration: line-through; }
+  .tasks li:hover { color: var(--accent-deep); }
+
+  .principle-card {
+    margin-top: 28px;
+    padding: 20px 24px;
+    background: var(--paper);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+  }
+  .principle-card .label {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .principle-card .quote {
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--ink);
+    line-height: 1.6;
+  }
+
+  .quick-links {
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .quick-links h3 {
+    margin: 0 0 12px;
+    font-family: Georgia, serif;
+    font-size: 16px;
+    color: var(--accent-deep);
+  }
+  .quick-links ul {
+    margin: 0; padding: 0; list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 8px;
+  }
+  .quick-links li {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 6px 0;
+  }
+  .quick-links li strong { color: var(--ink); }
+
+  footer {
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 20px;
+    color: var(--muted);
+    font-size: 12px;
+    border-top: 1px solid var(--line);
+  }
+
+  /* Saturday + Sunday distinct accent */
+  body.day-sat .day-header .day-title { color: var(--sat); }
+  body.day-sun .day-header .day-title { color: var(--sun); }
+
+  /* Mobile */
+  @media (max-width: 600px) {
+    .container { padding: 20px 14px 60px; }
+    header h1 { font-size: 22px; }
+    .block { grid-template-columns: 70px 1fr; }
+    .time { padding: 12px 6px; font-size: 11px; }
+    .time .start { font-size: 12px; }
+    .time .end { font-size: 10px; }
+    .activity { padding: 12px 14px; }
+    .activity-title { font-size: 14px; }
+    .activity-detail { font-size: 12px; }
+  }
+
+  /* Print */
+  @media print {
+    .day-tabs, .reset-btn, .progress, footer { display: none; }
+    body { background: white; }
+    .schedule { border: 1px solid #888; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>The Daily Operating System</h1>
+    <div class="subtitle">A schedule built around the Top 0.1% Blueprint · Free summer in Dallas</div>
+    <div class="live-clock" id="liveClock">—</div>
+  </header>
+
+  <div class="day-tabs" id="dayTabs"></div>
+
+  <div class="day-header">
+    <h2 class="day-title" id="dayTitle">—</h2>
+    <div class="day-vibe" id="dayVibe">—</div>
+  </div>
+
+  <div class="progress">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText">0 of 0 complete</div>
+    <button class="reset-btn" id="resetBtn">Reset day</button>
+  </div>
+
+  <div class="schedule" id="schedule"></div>
+
+  <div class="principle-card">
+    <div class="label">Principle of the Day</div>
+    <div class="quote" id="principleQuote">—</div>
+  </div>
+
+  <div class="quick-links">
+    <h3>Weekly targets to keep the schedule honest</h3>
+    <ul>
+      <li><strong>5</strong> cold outreach emails to Cox alumni</li>
+      <li><strong>2</strong> networking calls or coffee chats</li>
+      <li><strong>1</strong> handwritten thank-you note (minimum)</li>
+      <li><strong>8–10 hrs</strong> on modeling course (WSP / BIWS)</li>
+      <li><strong>3 gym</strong> + <strong>2 golf</strong> + <strong>1 tennis</strong> session</li>
+      <li><strong>3 hrs</strong> French (Pimsleur + iTalki)</li>
+      <li><strong>~150</strong> pages of reading from the list</li>
+      <li><strong>1</strong> museum, gallery, or cultural event</li>
+      <li><strong>3</strong> home-cooked dinners</li>
+      <li><strong>0</strong> negative-ROI nights (drunk, late, social-only with no upside)</li>
+    </ul>
+  </div>
+
+  <footer>
+    Edit me. Iterate me. Print me. Pin to your home screen for one-tap access.<br>
+    Progress is saved in your browser per day — your phone and laptop track separately.
+  </footer>
+</div>
+
+<script>
+// =================== SCHEDULE DATA ===================
+const PRINCIPLES = [
+  "Patience compounds. Most of your peers are sprinting at the wrong things; pace beats panic.",
+  "Capital, social, and cultural — three currencies, all compounding. Don't ignore the second two.",
+  "Quality over logos. Heritage over novelty. Patina over newness. Discretion over disclosure.",
+  "Every dollar spent at 20 to 'look the part' is a dollar that doesn't compound for 40 years.",
+  "Be the most prepared person in the room. Senior people notice within 30 seconds.",
+  "70% listening, 30% talking. Pure listeners are forgettable; pure talkers are exhausting.",
+  "Become a connector, not a collector. The people you introduce remember you twice.",
+  "Handwritten thank-you note within 24 hours. Three sentences. One specific reference.",
+  "Don't fake it. Honest 'I don't know' is read as confidence, not weakness.",
+  "Don't talk about money. Not yours, not theirs, not anyone's.",
+  "Two drinks at any work event. Then water. Always.",
+  "Don't broadcast ambition. The quiet ones outpace the loud ones.",
+  "If a brand is on the outside of the garment, you are paying to advertise it.",
+  "Fit beats brand beats fabric. Always tailor.",
+  "A 95-shooter with perfect etiquette is a better playing partner than an 80-shooter without.",
+  "Read 30 pages a day. In five years that's a small library.",
+  "Sleep is the highest-leverage performance variable in your 20s.",
+  "The MD you blow off at 23 is the partner who blocks your bid at 33.",
+  "Don't post your lifestyle. Real wealth doesn't.",
+  "Burn no bridges. Dallas + SMU + finance is a small, dense network.",
+];
+
+// Each block: time range, title, optional detail, list of tasks
+const SCHEDULE = {
+  weekday: {
+    title: "Weekday — Free Summer",
+    vibe: "Build days. Deep work mornings, networking afternoons, culture evenings.",
+    blocks: [
+      { start: "8:30", end: "8:45", title: "Wake — no phone for 30 min",
+        detail: "Water (16 oz). Quick stretch. Phone stays face-down or in another room.",
+        tasks: ["Drink water", "5-min stretch / mobility", "No phone yet"] },
+      { start: "8:45", end: "9:15", title: "Shower, skincare, dress",
+        detail: "Cetaphil → SPF 30+ → moisturize. Clothes laid out the night before.",
+        tasks: ["Shower", "SPF + skincare", "Wear clothes laid out last night"] },
+      { start: "9:15", end: "9:45", title: "Coffee + breakfast + market read",
+        detail: "WSJ Markets section. Money Stuff (Matt Levine). 10 minutes max — don't doomscroll.",
+        tasks: ["WSJ Markets section", "Money Stuff newsletter", "Eat real food (eggs, oats, fruit)"] },
+      { start: "9:45", end: "11:30", title: "DEEP WORK BLOCK 1 — Modeling course",
+        detail: "Hardest cognitive task of the day. WSP / BIWS / Investment Banking textbook. Phone in another room.",
+        tasks: ["WSP module or BIWS lesson (~90 min)", "Build at least one Excel exercise", "Notes in dedicated notebook"] },
+      { start: "11:30", end: "12:30", title: "Movement — gym / golf / tennis",
+        detail: "Mon/Wed/Fri: gym (compound lifts + 20 min cardio). Tue/Thu: golf range or short course (Tenison Park, Stevens Park).",
+        tasks: ["Workout or range session (60 min)", "Track in notes app or journal", "Hydrate after"] },
+      { start: "12:30", end: "1:30", title: "Lunch + language",
+        detail: "Cook something simple (eggs + greens, salad bowl). Pimsleur French audio while eating, OR iTalki tutor 3x/week.",
+        tasks: ["Real lunch, no fast food", "30 min Pimsleur OR iTalki tutor", "No social media at the table"] },
+      { start: "1:30", end: "3:00", title: "DEEP WORK BLOCK 2 — Networking + recruiting",
+        detail: "Cold outreach emails to Cox alumni. Prep for any upcoming coffee chats. Update tracking spreadsheet.",
+        tasks: ["Send 1–2 cold outreach emails", "Update networking tracker", "Research any contacts coming up this week", "Apply to 1 program / opportunity"] },
+      { start: "3:00", end: "4:00", title: "Reading — 30+ pages",
+        detail: "From the reading list. Liar's Poker, The Power Broker, Old Money, Meditations, Wharton, etc. Real book, not phone.",
+        tasks: ["30+ pages of a book from the list", "Note one passage worth re-reading"] },
+      { start: "4:00", end: "5:00", title: "Maintenance — wardrobe, errands, admin",
+        detail: "Shoe shine. Dry cleaning drop. Mail. Inbox to zero. Anything that's been sitting on a list.",
+        tasks: ["Inbox / texts to zero", "One wardrobe maintenance task (shine, mend, dry cleaning)", "Personal finance check (Mint, brokerage)"] },
+      { start: "5:00", end: "6:00", title: "Networking — IRL or call",
+        detail: "Coffee chat at The Mansion / Mister Charles / Houndstooth. Or scheduled call with Cox alum. Aim for 2 of these per week.",
+        tasks: ["Networking call or in-person coffee", "Have 5 specific questions ready", "Send handwritten thank-you within 24 hrs"] },
+      { start: "6:00", end: "7:30", title: "Dinner",
+        detail: "3 nights/week cook at home. 2 nights with friends or family. 1 night out (Lounge Here, Sister, Knife). 1 night light/flexible.",
+        tasks: ["Real dinner (no DoorDash unless rare)", "No phone at the table", "Drink water with dinner"] },
+      { start: "7:30", end: "9:00", title: "Cultural input",
+        detail: "DMA after-hours, gallery walk, jazz at Sambuca, an art-house film at Texas Theatre, friend's place, a Drake's tie purchase planned out, or simply read more.",
+        tasks: ["One cultural input (museum / film / live music / serious conversation)", "If staying in: 60 min on a hobby (sketch, write, learn an instrument, wine tasting)"] },
+      { start: "9:00", end: "10:00", title: "Hobby development",
+        detail: "Pick one and rotate weekly: drawing, writing, piano, chess, photography, wine note-taking. The point is to have one thing you're getting noticeably better at.",
+        tasks: ["60 min on chosen hobby", "Log progress in a notebook"] },
+      { start: "10:00", end: "11:00", title: "Reflect + plan",
+        detail: "Journal for 10 min. Plan tomorrow. Lay out clothes. Write any pending thank-you notes (Crane & Co. ecru folded).",
+        tasks: ["Journal: what worked, what to improve, who to thank", "Plan tomorrow's 3 priorities", "Lay out clothes for tomorrow", "Pending thank-you notes"] },
+      { start: "11:00", end: "11:45", title: "Wind down — phone in another room",
+        detail: "Light fiction (Wharton, Cheever, Fitzgerald). No screens. Bedroom cool and dark.",
+        tasks: ["Phone OUT of bedroom", "20–30 pages light reading", "Lights out by 11:45"] },
+      { start: "11:45", end: "8:30", title: "Sleep",
+        detail: "8 hrs 45 min target. The single highest-leverage performance variable.",
+        tasks: ["Sleep"] },
+    ]
+  },
+  saturday: {
+    title: "Saturday — Sport + Social",
+    vibe: "Longer mornings. Sport-heavy. Real social time. Build the friendship base.",
+    blocks: [
+      { start: "9:00", end: "9:30", title: "Slow wake",
+        detail: "Sleep in 30 min vs weekday. Water, light stretch.",
+        tasks: ["Hydrate", "Light stretch"] },
+      { start: "9:30", end: "10:30", title: "Long breakfast + FT Weekend",
+        detail: "Real cooked breakfast. Financial Times Weekend or The Economist. Hand-write one thank-you note.",
+        tasks: ["FT Weekend or The Economist", "Cook breakfast", "Write 1 thank-you note"] },
+      { start: "10:30", end: "1:30", title: "Golf — full round or range + 9",
+        detail: "Stevens Park (best public), Tenison Park East, or Cedar Crest. Walk if possible. Track score and one swing thought.",
+        tasks: ["Tee time (book Thursday for Saturday)", "Walk if possible", "Note 1 swing thought to work on"] },
+      { start: "1:30", end: "3:00", title: "Lunch — social",
+        detail: "Long lunch with a friend. The Mitchell, Honor Bar, Jonathon's Oak Cliff, or Mr. Charles. The 'sit and talk for 90 min' lunch is a Park Cities ritual; learn it.",
+        tasks: ["Plan with a friend by Thursday", "No phone at the table", "Pick up the check sometimes — graciously"] },
+      { start: "3:00", end: "5:00", title: "Reading + nap",
+        detail: "Bigger reading session — finish a chunk of a book. 20 min nap if needed.",
+        tasks: ["60+ pages serious reading", "Optional 20 min nap"] },
+      { start: "5:00", end: "7:00", title: "Wardrobe / errands / culture",
+        detail: "Brooks Brothers outlet (Allen, TX). Estate sale browse. Clotheshorse Anonymous. OR a museum visit (DMA, Nasher).",
+        tasks: ["One concrete wardrobe move OR cultural visit", "If shopping: leave with at most 1 item"] },
+      { start: "7:00", end: "10:00", title: "Real social dinner",
+        detail: "Date, group dinner, friend's place. Town Hearth, Knife, Lounge Here, Bullion, or a friend's home. Show up with wine ($30–60 range).",
+        tasks: ["Real dinner with people you like", "Bring host gift if it's at someone's home", "Two drinks, then water"] },
+      { start: "10:00", end: "12:30", title: "Evening out OR home",
+        detail: "If out: Bourbon & Banter, The Library Bar at the Mansion, Midnight Rambler. Cap at midnight. If home: book + bath + early sleep wins more than another bar.",
+        tasks: ["Decide before going out: max 2 venues, home by 12:30", "If home: long bath, book, early sleep"] },
+      { start: "12:30", end: "9:00", title: "Sleep",
+        detail: "8.5 hours target.",
+        tasks: ["Sleep"] },
+    ]
+  },
+  sunday: {
+    title: "Sunday — Reflect, Read, Reset",
+    vibe: "The most underrated day of the week. Don't waste it. Plan, read, prep, recover.",
+    blocks: [
+      { start: "9:00", end: "10:00", title: "Slow morning + breakfast",
+        detail: "Cook real breakfast. No agenda. Read FT Weekend that you didn't finish Saturday.",
+        tasks: ["Real breakfast", "FT Weekend / Economist", "No social media before 10"] },
+      { start: "10:00", end: "11:30", title: "Long walk",
+        detail: "White Rock Lake, Katy Trail, Highland Park residential streets, or Klyde Warren → Arts District. Phone on do-not-disturb. Audiobook OR silence.",
+        tasks: ["60–90 min walk", "Audiobook or silence", "No social calls during walk"] },
+      { start: "11:30", end: "1:00", title: "Cultural input — museum or film",
+        detail: "DMA (free), Nasher, Crow Asian Art, Meadows Museum (on SMU campus, free). Sundays before noon are nearly empty.",
+        tasks: ["1.5 hrs at a museum or gallery", "Pick ONE work to study for 5 min"] },
+      { start: "1:00", end: "2:30", title: "Lunch — light, often alone",
+        detail: "Honor Bar, Margaret's Café, or cook at home. Sundays are a fine day to be alone with a book.",
+        tasks: ["Light lunch", "Read during lunch (not phone)"] },
+      { start: "2:30", end: "4:00", title: "Weekly review + plan",
+        detail: "The most important 90 minutes of your week. Audit: networking pipeline, modeling course progress, books read, finances, body, sleep, mood. Adjust next week.",
+        tasks: ["Review networking tracker — who do I owe a follow-up?", "Modeling course: % done, what's next", "Finances: spend / saved / brokerage progress", "Wins / lessons from past week", "3 priorities for next week"] },
+      { start: "4:00", end: "5:00", title: "Long-form reading",
+        detail: "The week's most patient reading. The Power Broker, Caro biographies, an FT long read, a New Yorker piece you saved.",
+        tasks: ["60 min uninterrupted serious reading", "Note any insight worth keeping"] },
+      { start: "5:00", end: "7:00", title: "Cook a real Sunday dinner",
+        detail: "A dish that takes 90 min. Roast chicken. Pasta from scratch. Boeuf bourguignon. Cooking is the most undervalued cosmopolitan skill at 20.",
+        tasks: ["Real recipe, real ingredients", "Eat at the table, no TV", "Wine pairing — try something new"] },
+      { start: "7:00", end: "9:00", title: "Light social or quiet evening",
+        detail: "One friend stop by. Or family call. Or a film. Avoid bars on Sundays — cap social energy.",
+        tasks: ["Call family / one close friend", "Optional: film from the list (Metropolitan, Talented Mr. Ripley, etc.)"] },
+      { start: "9:00", end: "10:30", title: "Prep for Monday",
+        detail: "Lay out the week's outfits. Pre-prep Monday's lunch. Check tomorrow's calendar. Inbox to zero.",
+        tasks: ["Lay out Monday outfit", "Inbox to zero", "Check Mon–Wed calendar", "Confirm Mon coffee chats / calls"] },
+      { start: "10:30", end: "11:30", title: "Wind down",
+        detail: "Phone in another room. Light reading. Earlier sleep than Saturday.",
+        tasks: ["Phone OUT", "Light fiction (Wharton, Fitzgerald)", "Lights out by 11:30"] },
+      { start: "11:30", end: "8:30", title: "Sleep",
+        detail: "9 hours. Best sleep of the week sets up Monday's deep work.",
+        tasks: ["Sleep"] },
+    ]
+  }
+};
+
+const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const TAB_ORDER = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const TAB_TO_KEY = { Mon: "weekday", Tue: "weekday", Wed: "weekday", Thu: "weekday", Fri: "weekday", Sat: "saturday", Sun: "sunday" };
+const TAB_TO_DAYINDEX = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 0 };
+
+// =================== STATE ===================
+let currentTab = null;
+let nowTimer = null;
+
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
+}
+
+function todayTab() {
+  const d = new Date().getDay();
+  return TAB_ORDER.find(t => TAB_TO_DAYINDEX[t] === d);
+}
+
+function storageKey(tab) {
+  // Per-date, per-tab
+  return `schedule:${todayISO()}:${tab}`;
+}
+
+function loadDayState(tab) {
+  try {
+    const raw = localStorage.getItem(storageKey(tab));
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveDayState(tab, state) {
+  try { localStorage.setItem(storageKey(tab), JSON.stringify(state)); } catch {}
+}
+
+// =================== RENDER ===================
+function renderTabs() {
+  const wrap = document.getElementById("dayTabs");
+  wrap.innerHTML = "";
+  const today = todayTab();
+  TAB_ORDER.forEach(tab => {
+    const btn = document.createElement("button");
+    btn.className = "day-tab" + (tab === currentTab ? " active" : "") + (tab === today ? " today" : "");
+    btn.textContent = tab;
+    btn.title = tab === today ? "Today" : "";
+    btn.onclick = () => { currentTab = tab; render(); };
+    wrap.appendChild(btn);
+  });
+}
+
+function timeToMinutes(t) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + (m || 0);
+}
+
+function isCurrentBlock(block, tab) {
+  if (tab !== todayTab()) return false;
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  let s = timeToMinutes(block.start);
+  let e = timeToMinutes(block.end);
+  // sleep block wraps midnight: e < s
+  if (e <= s) {
+    return nowMin >= s || nowMin < e;
+  }
+  return nowMin >= s && nowMin < e;
+}
+
+function render() {
+  const today = todayTab();
+  if (!currentTab) currentTab = today;
+
+  const key = TAB_TO_KEY[currentTab];
+  const day = SCHEDULE[key];
+
+  // body class for accent
+  document.body.className = key === "saturday" ? "day-sat" : key === "sunday" ? "day-sun" : "";
+
+  document.getElementById("dayTitle").textContent = day.title;
+  document.getElementById("dayVibe").textContent = day.vibe;
+
+  renderTabs();
+
+  // Render schedule
+  const sched = document.getElementById("schedule");
+  sched.innerHTML = "";
+
+  const state = loadDayState(currentTab);
+
+  let totalTasks = 0, doneTasks = 0;
+
+  day.blocks.forEach((block, bi) => {
+    const div = document.createElement("div");
+    div.className = "block" + (isCurrentBlock(block, currentTab) ? " now" : "");
+
+    const time = document.createElement("div");
+    time.className = "time";
+    time.innerHTML = `<div class="start">${block.start}</div><div class="end">→ ${block.end}</div>`;
+
+    const act = document.createElement("div");
+    act.className = "activity";
+    act.innerHTML = `
+      <div class="activity-title">${block.title}</div>
+      ${block.detail ? `<div class="activity-detail">${block.detail}</div>` : ""}
+    `;
+
+    if (block.tasks && block.tasks.length) {
+      const ul = document.createElement("ul");
+      ul.className = "tasks";
+      block.tasks.forEach((tk, ti) => {
+        totalTasks++;
+        const id = `b${bi}t${ti}`;
+        const checked = !!state[id];
+        if (checked) doneTasks++;
+        const li = document.createElement("li");
+        if (checked) li.className = "done";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = checked;
+        cb.id = id;
+        const span = document.createElement("span");
+        span.textContent = tk;
+        li.appendChild(cb);
+        li.appendChild(span);
+        li.onclick = (e) => {
+          if (e.target.tagName !== "INPUT") cb.checked = !cb.checked;
+          state[id] = cb.checked;
+          saveDayState(currentTab, state);
+          li.classList.toggle("done", cb.checked);
+          updateProgress();
+        };
+        ul.appendChild(li);
+      });
+      act.appendChild(ul);
+    }
+
+    div.appendChild(time);
+    div.appendChild(act);
+    sched.appendChild(div);
+  });
+
+  // Progress
+  function updateProgress() {
+    const cs = loadDayState(currentTab);
+    let t = 0, d = 0;
+    day.blocks.forEach((b, bi) => (b.tasks||[]).forEach((_, ti) => {
+      t++;
+      if (cs[`b${bi}t${ti}`]) d++;
+    }));
+    const pct = t === 0 ? 0 : Math.round((d/t) * 100);
+    document.getElementById("progressFill").style.width = pct + "%";
+    document.getElementById("progressText").textContent = `${d} of ${t} complete · ${pct}%`;
+  }
+  updateProgress();
+  window._updateProgress = updateProgress;
+
+  // Principle
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(),0,0)) / 86400000);
+  document.getElementById("principleQuote").textContent = PRINCIPLES[dayOfYear % PRINCIPLES.length];
+}
+
+// =================== LIVE CLOCK ===================
+function tickClock() {
+  const d = new Date();
+  const dayName = DAY_NAMES[d.getDay()];
+  const dateStr = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const timeStr = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  document.getElementById("liveClock").textContent = `${dayName}, ${dateStr} · ${timeStr}`;
+  // Re-render once a minute for the NOW indicator
+  if (d.getSeconds() === 0) render();
+}
+
+// =================== INIT ===================
+document.getElementById("resetBtn").onclick = () => {
+  if (confirm("Reset all checkboxes for this day?")) {
+    localStorage.removeItem(storageKey(currentTab));
+    render();
+  }
+};
+
+currentTab = todayTab();
+render();
+tickClock();
+setInterval(tickClock, 1000);
+</script>
+</body>
+</html>
